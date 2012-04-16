@@ -16,6 +16,8 @@
 #include "griddatabase/GridDatabase2DPrivate.h"
 #include "interfaces/SpatialDatabaseItem.h"
 
+#include "griddatabase/GridDatabase2DCUDA.h"
+
 // forward declaration
 class MTRand;
 
@@ -180,8 +182,13 @@ namespace SteerLib {
 		void draw();
 		//@}
 
-
-
+	private:
+		cuda_item *cudaItems;
+		cuda_item *hostItems;
+		int cudaAgentNum;
+		int cudaObstacleNum;
+	public:
+		void allocateCUDAItems(int agentNum, int obstacleNum);
 	};
 
 

@@ -48,6 +48,11 @@ GridDatabase2D::GridDatabase2D(float xmin, float xmax, float zmin, float zmax, u
 
 	_allocateDatabase();
 	_planningDomain = new GridDatabasePlanningDomain(this);
+
+	cudaItems = NULL;
+	hostItems = NULL;
+	cudaAgentNum = 0;
+	cudaObstacleNum = 0;
 }
 
 
@@ -70,6 +75,11 @@ GridDatabase2D::GridDatabase2D(const Point & origin2D, float xExtent, float zExt
 
 	_allocateDatabase();
 	_planningDomain = new GridDatabasePlanningDomain(this);
+
+	cudaItems = NULL;
+	hostItems = NULL;
+	cudaAgentNum = 0;
+	cudaObstacleNum = 0;
 }
 
 
@@ -81,6 +91,12 @@ GridDatabase2D::~GridDatabase2D()
 	delete [] _basePtr;
 	delete [] _cells;
 	delete _planningDomain;
+
+	if (cudaItems != NULL)
+		cudaFree(cudaItems);
+
+	if (hostItems != NULL)
+		delete [] hostItems;
 }
 
 
@@ -687,4 +703,14 @@ bool GridDatabase2D::planPath(unsigned int startLocation, unsigned int goalLocat
 	BestFirstSearchPlanner<GridDatabasePlanningDomain, unsigned int> gridAStarPlanner;
 	gridAStarPlanner.init(_planningDomain, INT_MAX);
 	return gridAStarPlanner.computePlan(startLocation, goalLocation, outputPlan);
+}
+
+void GridDatabase2D::allocateCUDAItems(int agentNum, int obstacleNum)
+{
+	cudaAgentNum = agentNum;
+	cudaObstacleNum = obstacleNum;
+
+	CudaSafeCall(cudaMalloc(&cudaItems, sizeof(cuda_item)*(cudaAgentNum+cudaObstacleNum)));
+
+	hostItems = new cuda_item[cudaAgentNum+cudaObstacleNum];
 }

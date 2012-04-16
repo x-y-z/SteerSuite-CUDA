@@ -392,5 +392,13 @@
     <ClInclude Include="..\..\..\external\tinyxml\tinyxml.h">
       <Filter>external\tinyxml</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\griddatabase\GridDatabase2DCUDA.h">
+      <Filter>Header Files\griddatabase</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\..\src\GridDatabase2DCUDA.cu">
+      <Filter>Source Files\griddatabase</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

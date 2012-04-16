@@ -26,6 +26,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.1.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -42,6 +43,7 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(CUDA_INC_PATH);$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -71,9 +73,12 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(OPENGL_LINK);$(GLU_LINK);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart.lib;$(OPENGL_LINK);$(GLU_LINK);%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <CudaCompile>
+      <Include>..\..\include;..\..\..\external;%(AdditionalIncludeDirectories)</Include>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\AgentMetricsCollector.cpp" />
@@ -116,6 +121,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Globals.h" />
+    <ClInclude Include="..\..\include\griddatabase\GridDatabase2DCUDA.h" />
     <ClInclude Include="..\..\include\SimulationPlugin.h" />
     <ClInclude Include="..\..\include\SteerLib.h" />
     <ClInclude Include="..\..\include\Util.h" />
@@ -182,7 +188,13 @@
     <ClInclude Include="..\..\..\external\tinyxml\tinystr.h" />
     <ClInclude Include="..\..\..\external\tinyxml\tinyxml.h" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\..\src\GridDatabase2DCUDA.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.1.targets" />
   </ImportGroup>
 </Project>
