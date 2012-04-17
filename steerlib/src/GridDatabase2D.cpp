@@ -798,5 +798,16 @@ int GridDatabase2D::updateAICUDA(float currentSimulationTime, float simulatonDt,
 
 int GridDatabase2D::updateHostAgents(std::vector<SteerLib::AgentInterface*> &agentList)
 {
+	cudaHostAgentInfo newInfo;
+
+	if (agentList.size() != cudaAgentNum)
+		throw GenericException("agent num does not match");
+
+	for (int i = 0; i < agentList.size(); ++i)
+	{
+		newInfo._enabled = hostItems[i]._agent._enabled;
+		//agentList[i]->updateWholeAgent();
+	}
+
 	return 0;
 }

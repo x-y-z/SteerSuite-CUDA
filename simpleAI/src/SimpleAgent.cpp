@@ -157,3 +157,27 @@ void SimpleAgent::_doEulerStep(const Util::Vector & steeringDecisionForce, float
 
 	_position = newPosition;
 }
+
+int SimpleAgent::updateWholeAgent(const cudaHostAgentInfo &newInfo)
+{
+	
+	// initialize the agent based on the initial conditions
+	_position = newInfo._position;
+	_forward = newInfo._forward;
+	_radius = newInfo._radius;
+	_velocity = newInfo._velocity;
+
+
+	// if the agent was enabled, then the agent already existed in the database, so update it instead of adding it.
+	gSpatialDatabase->updateObject( this, newInfo.oldBounds, newInfo.newBounds);
+	
+
+	_enabled = newInfo._enabled;
+
+	_goalQueue = newInfo._goalQueue;
+
+	assert(_forward.length()!=0.0f);
+	assert(_goalQueue.size() != 0);
+	assert(_radius != 0.0f);
+	return 0;
+}

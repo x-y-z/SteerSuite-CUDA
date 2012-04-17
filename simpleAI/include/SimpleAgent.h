@@ -51,6 +51,7 @@ public:
 	float computePenetration(const Util::Point & p, float radius) { return Util::computeCircleCirclePenetration2D( _position, _radius, p, radius); }
 	//@}
 
+	int updateWholeAgent(const cudaHostAgentInfo &newInfo);
 
 protected:
 	/// Updates position, velocity, and orientation of the agent, given the force and dt time step.

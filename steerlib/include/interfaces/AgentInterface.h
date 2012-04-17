@@ -15,10 +15,22 @@
 #include "griddatabase/GridDatabase2D.h"
 #include "util/Geometry.h"
 
+typedef struct cudaHostAgentInfo{
+	bool _enabled;
+	Util::Point _position;
+	Util::Vector _velocity;
+	Util::Vector _forward; // normalized version of velocity
+	float _radius;
+	Util::AxisAlignedBox oldBounds;
+	Util::AxisAlignedBox newBounds;
+	std::queue<SteerLib::AgentGoalInfo> _goalQueue;
+} cudaHostAgentInfo;
+
 namespace SteerLib {
 
 	// forward declaration
 	class STEERLIB_API EngineInterface;
+
 
 
 	/**
@@ -87,6 +99,7 @@ namespace SteerLib {
 		virtual bool overlaps(const Util::Point & p, float radius) = 0;
 		virtual float computePenetration(const Util::Point & p, float radius) = 0;
 		//@}
+		virtual int updateWholeAgent(const cudaHostAgentInfo &newInfo) {return 0;};
 	};
 
 
