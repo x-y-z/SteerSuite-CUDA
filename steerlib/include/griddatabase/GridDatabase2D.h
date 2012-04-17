@@ -11,6 +11,7 @@
 
 #include <set>
 #include <stack>
+#include <vector>
 
 #include "Globals.h"
 #include "griddatabase/GridDatabase2DPrivate.h"
@@ -18,11 +19,17 @@
 
 #include "griddatabase/GridDatabase2DCUDA.h"
 
+
+
+
 // forward declaration
 class MTRand;
 
 namespace SteerLib {
 
+	struct AgentInitialConditions;
+	struct ObstacleInitialConditions;
+	class STEERLIB_API AgentInterface;
 
 	/** 
 	 * @brief A 2-D spatial database, that can contain any objects that inherit the SpatialDatabaseItem interface.
@@ -189,6 +196,15 @@ namespace SteerLib {
 		int cudaObstacleNum;
 	public:
 		void allocateCUDAItems(int agentNum, int obstacleNum);
+		void addAgentCUDA(AgentInitialConditions &agentInfo, int idx);
+		void addObstacleCUDA(const ObstacleInitialConditions &obstacleInfo, int idx);
+
+		void fromHostToDevice();
+		void fromDeviceToHost();
+
+		int updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber);
+
+		int updateHostAgents(std::vector<SteerLib::AgentInterface*> &agentList);
 	};
 
 

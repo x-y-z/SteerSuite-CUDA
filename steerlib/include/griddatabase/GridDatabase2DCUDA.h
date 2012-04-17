@@ -4,6 +4,11 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
+#include "testcaseio/ObstacleInitialConditions.h"
+#include <cstdio>
+#include "util/Geometry.h"
+#include "cutil_math.h"
+
 
 //=============cuda===========
 // Enable this for error checking
@@ -81,6 +86,32 @@ typedef struct AABox{
 	float xmin, xmax;
 	float ymin, ymax;
 	float zmin, zmax;
+
+	AABox &operator= (const Util::AxisAlignedBox &aBox)
+	{
+		//AABox mBox;
+		xmax = aBox.xmax;
+		xmin = aBox.xmin;
+		ymax = aBox.ymax;
+		ymin = aBox.ymin;
+		zmax = aBox.zmax;
+		zmin = aBox.zmin;
+
+		return *this;
+	}
+
+	AABox &operator= (const SteerLib::ObstacleInitialConditions &aBox)
+	{
+		//AABox mBox;
+		xmax = aBox.xmax;
+		xmin = aBox.xmin;
+		ymax = aBox.ymax;
+		ymin = aBox.ymin;
+		zmax = aBox.zmax;
+		zmin = aBox.zmin;
+
+		return *this;
+	}
 }AABox;
 
 
@@ -92,7 +123,13 @@ typedef struct cuda_agent{
 	float _radius;
 	float3 _goalQueue[20];
 	int _goalQSize;
+	int _curGoal;
+	AABox _oldBounds;
+	AABox _newBounds;
 }cuda_agent;
+
+
+
 
 typedef struct cuda_obstacle{
 	AABox _bounds;
@@ -104,5 +141,10 @@ typedef struct cuda_item{
 	cuda_agent _agent;
 	cuda_obstacle _obstacle;
 } cuda_item;
+
+
+
+void launch_updateAICUDA(cuda_item *cudaItems, float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber, 
+	        int agentNum, int obstacleNum, int &numDisabledAgents);
 
 #endif

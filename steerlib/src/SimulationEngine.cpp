@@ -308,8 +308,14 @@ bool SimulationEngine::_simulateOneStep()
 		(*moduleIterator)->preprocessFrame(currentSimulationTime, simulatonDt, currentFrameNumber);
 	}
 
+	numDisabledAgents += _spatialDatabase->updateAICUDA(currentSimulationTime, simulatonDt, currentFrameNumber);
+
+	_spatialDatabase->fromDeviceToHost();
+
+	_spatialDatabase->updateHostAgents(_agents);
+
 	// call updateAI for all agents
-	std::vector<SteerLib::AgentInterface*>::iterator agentIterator;
+	/*std::vector<SteerLib::AgentInterface*>::iterator agentIterator;
 	for ( agentIterator = _agents.begin(); agentIterator != _agents.end(); ++agentIterator ) {
 		if ((*agentIterator)->enabled()){
 			(*agentIterator)->updateAI(currentSimulationTime, simulatonDt, currentFrameNumber);
@@ -317,7 +323,7 @@ bool SimulationEngine::_simulateOneStep()
 		else {
 			numDisabledAgents++;
 		}
-	}
+	}*/
 
 	// call postprocess for all modules
 	for ( moduleIterator = _modulesInExecutionOrder.begin(); moduleIterator != _modulesInExecutionOrder.end();  ++moduleIterator ) {

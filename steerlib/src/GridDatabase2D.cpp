@@ -21,6 +21,7 @@
 #include "griddatabase/GridDatabase2D.h"
 #include "griddatabase/GridDatabasePlanningDomain.h"
 
+
 using namespace std;
 using namespace SteerLib;
 using namespace Util;
@@ -713,4 +714,89 @@ void GridDatabase2D::allocateCUDAItems(int agentNum, int obstacleNum)
 	CudaSafeCall(cudaMalloc(&cudaItems, sizeof(cuda_item)*(cudaAgentNum+cudaObstacleNum)));
 
 	hostItems = new cuda_item[cudaAgentNum+cudaObstacleNum];
+}
+
+void GridDatabase2D::addAgentCUDA(AgentInitialConditions &agentInfo, int idx)
+{
+	//Util::AxisAlignedBox oldBounds(_position.x-_radius, _position.x+_radius, 0.0f, 0.0f, _position.z-_radius, _position.z+_radius);
+
+	// initialize the agent based on the initial conditions
+	hostItems[idx].type = 0;
+	
+	hostItems[idx]._agent._position.x = agentInfo.position.x;
+	hostItems[idx]._agent._position.y = agentInfo.position.y;
+	hostItems[idx]._agent._position.z = agentInfo.position.z;
+
+	hostItems[idx]._agent._forward.x = agentInfo.direction.x;
+	hostItems[idx]._agent._forward.y = agentInfo.direction.y;
+	hostItems[idx]._agent._forward.z = agentInfo.direction.z;
+
+
+	hostItems[idx]._agent._radius = agentInfo.radius;
+
+	hostItems[idx]._agent._velocity.x = (agentInfo.speed * Util::normalize(agentInfo.direction)).x;
+	hostItems[idx]._agent._velocity.y = (agentInfo.speed * Util::normalize(agentInfo.direction)).y;
+	hostItems[idx]._agent._velocity.z = (agentInfo.speed * Util::normalize(agentInfo.direction)).z;
+
+	// compute the "new" bounding box of the agent
+	Util::AxisAlignedBox newBounds(hostItems[idx]._agent._position.x-hostItems[idx]._agent._radius, hostItems[idx]._agent._position.x+hostItems[idx]._agent._radius, 
+		                           0.0f, 0.0f, hostItems[idx]._agent._position.z-hostItems[idx]._agent._radius, hostItems[idx]._agent._position.z+hostItems[idx]._agent._radius);
+
+	hostItems[idx]._agent._newBounds = hostItems[idx]._agent._oldBounds = newBounds;
+	
+	hostItems[idx]._agent._goalQSize = agentInfo.goals.size();
+
+	for (unsigned int i=0; i<agentInfo.goals.size(); i++) {
+		if (agentInfo.goals[i].goalType == SteerLib::GOAL_TYPE_SEEK_STATIC_TARGET) {
+			hostItems[idx]._agent._goalQueue[i].x = agentInfo.goals[i].targetLocation.x;
+			hostItems[idx]._agent._goalQueue[i].y = agentInfo.goals[i].targetLocation.y;
+			hostItems[idx]._agent._goalQueue[i].z = agentInfo.goals[i].targetLocation.z;
+
+			if (agentInfo.goals[i].targetIsRandom) {
+				// if the goal is random, we must randomly generate the goal.
+				Util::Point aGoal = randomPositionWithoutCollisions(1.0f, true);
+				agentInfo.goals[i].targetIsRandom = false;
+				agentInfo.goals[i].targetLocation = aGoal;
+			}
+		}
+		else {
+			throw Util::GenericException("Unsupported goal type; SimpleAgent only supports GOAL_TYPE_SEEK_STATIC_TARGET.");
+		}
+	}
+
+	hostItems[idx]._agent._enabled = true;
+	hostItems[idx]._agent._curGoal = 0;
+
+}
+void GridDatabase2D::addObstacleCUDA(const ObstacleInitialConditions &obstacleInfo, int idx)
+{
+	int oIdx = idx + cudaAgentNum;
+	hostItems[oIdx].type = 1;
+
+	hostItems[oIdx]._obstacle._bounds = obstacleInfo;
+
+	
+	hostItems[oIdx]._obstacle._blocksLineOfSight = (hostItems[oIdx]._obstacle._bounds.ymax > 0.7) ? true : false;
+}
+
+void GridDatabase2D::fromHostToDevice()
+{
+	CudaSafeCall(cudaMemcpy(cudaItems, hostItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyHostToDevice));
+}
+void GridDatabase2D::fromDeviceToHost()
+{
+	CudaSafeCall(cudaMemcpy(hostItems, cudaItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyDeviceToHost));
+}
+
+int GridDatabase2D::updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber)
+{
+	int incrementDisabledAgents = 0;
+	launch_updateAICUDA(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber, cudaAgentNum, cudaObstacleNum,
+		                incrementDisabledAgents);
+	return incrementDisabledAgents;
+}
+
+int GridDatabase2D::updateHostAgents(std::vector<SteerLib::AgentInterface*> &agentList)
+{
+	return 0;
 }

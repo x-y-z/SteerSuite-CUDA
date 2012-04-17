@@ -395,6 +395,9 @@
     <ClInclude Include="..\..\include\griddatabase\GridDatabase2DCUDA.h">
       <Filter>Header Files\griddatabase</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\cutil_math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\..\src\GridDatabase2DCUDA.cu">

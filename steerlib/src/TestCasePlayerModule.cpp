@@ -94,6 +94,7 @@ void TestCasePlayerModule::initializeSimulation() {
 	testCaseReader = new SteerLib::TestCaseReader();
 	testCaseReader->readTestCaseFromFile(testCasePath);
 
+	_engine->getSpatialDatabase()->allocateCUDAItems(testCaseReader->getNumAgents(), testCaseReader->getNumObstacles());
 
 	for (unsigned int i=0; i < testCaseReader->getNumObstacles(); i++) {
 		const SteerLib::ObstacleInitialConditions & ic = testCaseReader->getObstacleInitialConditions(i);
@@ -102,14 +103,25 @@ void TestCasePlayerModule::initializeSimulation() {
 		_obstacles.push_back(b);
 		_engine->addObstacle(b);
 		_engine->getSpatialDatabase()->addObject( b, b->getBounds());
+
+		//added for cuda
+		_engine->getSpatialDatabase()->addObstacleCUDA(ic, i);
 	}
 
 
 	for (unsigned int i=0; i < testCaseReader->getNumAgents(); i++) {
 		const SteerLib::AgentInitialConditions & ic = testCaseReader->getAgentInitialConditions(i);
-		_engine->createAgent( ic, _aiModule );
+
+		//added for cuda
+		SteerLib::AgentInitialConditions aIC = ic;
+
+		_engine->getSpatialDatabase()->addAgentCUDA(aIC, i);
+
+		_engine->createAgent( aIC, _aiModule );
 	}
 
+	//call only once here
+	_engine->getSpatialDatabase()->fromHostToDevice();
 
 	delete testCaseReader;
 

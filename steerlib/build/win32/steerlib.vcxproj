@@ -78,6 +78,7 @@
     </Link>
     <CudaCompile>
       <Include>..\..\include;..\..\..\external;%(AdditionalIncludeDirectories)</Include>
+      <CodeGeneration>compute_10,sm_11</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -120,6 +121,7 @@
     <ClCompile Include="..\..\..\external\tinyxml\tinyxmlparser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\cutil_math.h" />
     <ClInclude Include="..\..\include\Globals.h" />
     <ClInclude Include="..\..\include\griddatabase\GridDatabase2DCUDA.h" />
     <ClInclude Include="..\..\include\SimulationPlugin.h" />
