@@ -78,10 +78,6 @@ inline void __cudaCheckError( const char *file, const int line )
 
 //=============cuda end=========
 
-
-
-
-
 typedef struct AABox{
 	float xmin, xmax;
 	float ymin, ymax;
@@ -124,6 +120,7 @@ typedef struct cuda_agent{
 	float3 _goalQueue[20];
 	int _goalQSize;
 	int _curGoal;
+	int _usedGoal;
 	AABox _oldBounds;
 	AABox _newBounds;
 }cuda_agent;

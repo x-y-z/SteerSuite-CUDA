@@ -78,7 +78,7 @@
     </Link>
     <CudaCompile>
       <Include>..\..\include;..\..\..\external;%(AdditionalIncludeDirectories)</Include>
-      <CodeGeneration>compute_10,sm_11</CodeGeneration>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

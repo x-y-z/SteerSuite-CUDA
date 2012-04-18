@@ -57,17 +57,36 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (x > agentNum)
+	
+
+	if (x >= agentNum)
 		return;
+
+	if (!cudaItems[x]._agent._enabled)
+	{
+		cudaItems[x].type = -1;
+		disabledAgents[x] = 1;
+		return;
+	}
+	//printf("thread: %d\n", x);
+
 	int curGoal = cudaItems[x]._agent._curGoal;
 	float radius = cudaItems[x]._agent._radius;
 	float3 position = cudaItems[x]._agent._position;
 	float3 vectorToGoal = cudaItems[x]._agent._goalQueue[curGoal] - cudaItems[x]._agent._position;
 
+	//printf("goal: (%f,%f,%f)\n", cudaItems[x]._agent._goalQueue[curGoal].x, cudaItems[x]._agent._goalQueue[curGoal].y, cudaItems[x]._agent._goalQueue[curGoal].z);
+	//printf("position: (%f,%f,%f)\n", cudaItems[x]._agent._position.x, cudaItems[x]._agent._position.y, cudaItems[x]._agent._position.z);
+
+	//printf("vector to Goal: (%f,%f,%f), radius: %f\n", vectorToGoal.x, vectorToGoal.y, vectorToGoal.z, radius);
+
+	cudaItems[x]._agent._usedGoal = 0;
+
 	// it is up to the agent to decide what it means to have "accomplished" or "completed" a goal.
 	// for the simple AI, if the agent's distance to its goal is less than its radius, then the agent has reached the goal.
 	if (dot(vectorToGoal, vectorToGoal) < radius * radius) {
 		cudaItems[x]._agent._curGoal++;
+		cudaItems[x]._agent._usedGoal++;
 		if (cudaItems[x]._agent._curGoal != cudaItems[x]._agent._goalQSize) {
 			// in this case, there are still more goals, so start steering to the next goal.
 			vectorToGoal = cudaItems[x]._agent._goalQueue[cudaItems[x]._agent._curGoal] - cudaItems[x]._agent._position;
@@ -79,6 +98,7 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 			cudaItems[x]._agent._newBounds = bounds;
 			cudaItems[x]._agent._enabled = false;
 			disabledAgents[x] = 1;
+			printf("disabled one\n");
 			return;
 		}
 	}
@@ -121,19 +141,22 @@ void launch_updateAICUDA(cuda_item *cudaItems, float currentSimulationTime, floa
 	dim3 grid((agentNum)/(BLOCKSIZE*BLOCKSIZE) + 1);
 
 	int *disAgents, *hostDisAgents;
-	cudaMalloc(&disAgents, sizeof(int)*agentNum);
-	cudaMemset(disAgents,0, sizeof(int)*agentNum);
+	CudaSafeCall(cudaMalloc(&disAgents, sizeof(int)*agentNum));
+	CudaSafeCall(cudaMemset(disAgents,0, sizeof(int)*agentNum));
 
 	hostDisAgents = new int[agentNum];
 
 	updateAI_kernel<<<grid, block>>>(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber,
 		                             agentNum, obstacleNum, disAgents);
 
-	cudaMemcpy(hostDisAgents, disAgents, sizeof(int)*agentNum, cudaMemcpyDeviceToHost);
+	cudaError_t res = cudaDeviceSynchronize();
+
+	res = (cudaMemcpy(hostDisAgents, disAgents, sizeof(int)*agentNum, cudaMemcpyDeviceToHost));
 
 	for (int i = 0; i < agentNum; ++i)
 	{
 		numDisabledAgents += hostDisAgents[i];
 	}
+
 
 }

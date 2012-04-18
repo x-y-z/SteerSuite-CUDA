@@ -21,6 +21,10 @@
 #include <float.h>
 #include "Globals.h"
 
+#include "cuda.h"
+#include "cuda_runtime.h"
+
+
 
 
 #define _UTIL_GEOMETRY_EPSILON 0.00001f
@@ -84,6 +88,8 @@ namespace Util {
 		Vector operator*(float c) const { return Vector(c*x, c*y, c*z); }
 		/// Divides a vector by a scalar.
 		Vector operator/(float c) const { float cInverse = 1.0f / c; return Vector(cInverse*x, cInverse*y, cInverse*z); }
+		//
+		Vector &operator= (float3 &c) { x=c.x; y=c.y; z=c.z; return *this;}
 		//@}
 
 		/// @name Binary operators for logic
@@ -124,6 +130,7 @@ namespace Util {
 
 		bool operator==(const Point &pt) const { return ((x == pt.x) && (y == pt.y) && (z == pt.z)); }
 		bool operator!=(const Point &pt) const { return ((x != pt.x) || (y != pt.y) || (z != pt.z)); }
+		Point &operator= (float3 &c) { x=c.x; y=c.y; z=c.z; return *this;}
 	};
 
 
@@ -166,6 +173,7 @@ namespace Util {
 		//void expandBounds(const Point &p) { xmin = (p.x < xmin) ? p.x : xmin; xmax = (p.x > xmax) ? p.x : xmax; ymin = (p.y < ymin) ? p.y : ymin; ymax = (p.y > ymax) ? p.y : ymax; zmin = (p.z < zmin) ? p.z : zmin; zmax = (p.z > zmax) ? p.z : zmax; }
 		//void setBounds(const Point &center, float radius) { float r = fabsf(radius); xmin = center.x - r; xmax = center.x + r; ymin = center.y - r; ymax = center.y + r; zmin = center.z - r; zmax = center.z + r; }
 		//void setBounds(float newxmin, float newxmax, float newymin, float newymax, float newzmin, float newzmax) { xmin = newxmin; xmax=newxmax; ymin=newymin; ymax=newymax; zmin=newzmin; zmax=newzmax; }
+		
 	};
 
 

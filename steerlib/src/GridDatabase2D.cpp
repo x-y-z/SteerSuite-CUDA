@@ -757,6 +757,9 @@ void GridDatabase2D::addAgentCUDA(AgentInitialConditions &agentInfo, int idx)
 				Util::Point aGoal = randomPositionWithoutCollisions(1.0f, true);
 				agentInfo.goals[i].targetIsRandom = false;
 				agentInfo.goals[i].targetLocation = aGoal;
+				hostItems[idx]._agent._goalQueue[i].x = agentInfo.goals[i].targetLocation.x;
+				hostItems[idx]._agent._goalQueue[i].y = agentInfo.goals[i].targetLocation.y;
+				hostItems[idx]._agent._goalQueue[i].z = agentInfo.goals[i].targetLocation.z;
 			}
 		}
 		else {
@@ -790,10 +793,10 @@ void GridDatabase2D::fromDeviceToHost()
 
 int GridDatabase2D::updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber)
 {
-	int incrementDisabledAgents = 0;
+	int allDisabledAgents = 0;
 	launch_updateAICUDA(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber, cudaAgentNum, cudaObstacleNum,
-		                incrementDisabledAgents);
-	return incrementDisabledAgents;
+		                allDisabledAgents);
+	return allDisabledAgents;
 }
 
 int GridDatabase2D::updateHostAgents(std::vector<SteerLib::AgentInterface*> &agentList)
@@ -805,8 +808,33 @@ int GridDatabase2D::updateHostAgents(std::vector<SteerLib::AgentInterface*> &age
 
 	for (int i = 0; i < agentList.size(); ++i)
 	{
+		if (hostItems[i].type < 0)
+			continue;
+
 		newInfo._enabled = hostItems[i]._agent._enabled;
-		//agentList[i]->updateWholeAgent();
+		newInfo.newBounds.xmax = hostItems[i]._agent._newBounds.xmax;
+		newInfo.newBounds.ymax = hostItems[i]._agent._newBounds.ymax;
+		newInfo.newBounds.zmax = hostItems[i]._agent._newBounds.zmax;
+		newInfo.newBounds.xmin = hostItems[i]._agent._newBounds.xmin;
+		newInfo.newBounds.ymin = hostItems[i]._agent._newBounds.ymin;
+		newInfo.newBounds.zmin = hostItems[i]._agent._newBounds.zmin;
+
+		newInfo.oldBounds.xmax = hostItems[i]._agent._oldBounds.xmax;
+		newInfo.oldBounds.ymax = hostItems[i]._agent._oldBounds.ymax;
+		newInfo.oldBounds.zmax = hostItems[i]._agent._oldBounds.zmax;
+		newInfo.oldBounds.xmin = hostItems[i]._agent._oldBounds.xmin;
+		newInfo.oldBounds.ymin = hostItems[i]._agent._oldBounds.ymin;
+		newInfo.oldBounds.zmin = hostItems[i]._agent._oldBounds.zmin;
+
+		newInfo._forward = hostItems[i]._agent._forward;
+		newInfo._position = hostItems[i]._agent._position;
+		newInfo._radius = hostItems[i]._agent._radius;
+		newInfo._velocity = hostItems[i]._agent._velocity;
+
+		//may be goals
+		newInfo.usedGoals = hostItems[i]._agent._usedGoal;
+
+		agentList[i]->updateWholeAgent(newInfo);
 	}
 
 	return 0;

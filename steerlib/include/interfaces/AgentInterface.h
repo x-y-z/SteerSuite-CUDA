@@ -23,7 +23,8 @@ typedef struct cudaHostAgentInfo{
 	float _radius;
 	Util::AxisAlignedBox oldBounds;
 	Util::AxisAlignedBox newBounds;
-	std::queue<SteerLib::AgentGoalInfo> _goalQueue;
+	//std::queue<SteerLib::AgentGoalInfo> _goalQueue;
+	int usedGoals;
 } cudaHostAgentInfo;
 
 namespace SteerLib {
