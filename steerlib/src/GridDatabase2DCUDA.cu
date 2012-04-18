@@ -98,7 +98,7 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 			cudaItems[x]._agent._newBounds = bounds;
 			cudaItems[x]._agent._enabled = false;
 			disabledAgents[x] = 1;
-			printf("disabled one\n");
+			//printf("disabled one\n");
 			return;
 		}
 	}
