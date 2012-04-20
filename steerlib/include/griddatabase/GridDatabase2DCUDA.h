@@ -10,7 +10,7 @@
 #include "cutil_math.h"
 
 
-#define STREAM_SIZE 512
+#define STREAM_SIZE 1024
 
 //=============cuda===========
 // Enable this for error checking
