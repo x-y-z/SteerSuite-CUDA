@@ -96,6 +96,12 @@ namespace SteerLib {
 	 *   - add management of obstacles, similar to agents
 	 */
 	class STEERLIB_API SimulationEngine : public EngineInterface {
+	private:
+		long agentUpdateTime;
+		void printAgentUpdateTime(){std::cout<<"The total agent update time is:"<<agentUpdateTime<<" ms"<<std::endl;}
+
+		long agentCopyTime;
+		void printAgentCopyTime(){std::cout<<"The total agent copy back time is:"<<agentCopyTime<<" ms"<<std::endl;}
 	public:
 		SimulationEngine();
 

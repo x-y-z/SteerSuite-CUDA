@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 			int sec = system_time2.wSecond - system_time1.wSecond;
 			int msec = system_time2.wMilliseconds - system_time1.wMilliseconds;
 
-			std::cout<<"Time elapsed: "<<(min*60+sec)*1000+msec<<std::endl;
+			std::cout<<"Time elapsed: "<<(min*60+sec)*1000+msec<<" ms"<<std::endl;
 
 			driver->finish();
 #else
