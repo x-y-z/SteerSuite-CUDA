@@ -53,12 +53,10 @@ Util::Vector vectorToGoal = _goalQueue.front().targetLocation - _position;
 	*/
 
 __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTime, float dt, unsigned int currentFrameNumbers,
-								int agentNum, int obstacleNum, int *disabledAgents)
+								int agentNum, int obstacleNum, int *disabledAgents, int streamIdx)
 {
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-
+	int x = blockIdx.x * blockDim.x + threadIdx.x + streamIdx*STREAM_SIZE;
 	
-
 	if (x >= agentNum)
 		return;
 
@@ -68,7 +66,7 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 		disabledAgents[x] = 1;
 		return;
 	}
-	//printf("thread: %d\n", x);
+	//printf("thread: %d\t", x);
 
 	int curGoal = cudaItems[x]._agent._curGoal;
 	float radius = cudaItems[x]._agent._radius;
@@ -134,22 +132,39 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 
 }
 
-void launch_updateAICUDA(cuda_item *cudaItems, float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber, 
-	                     int agentNum, int obstacleNum, int &numDisabledAgents)
+void launch_updateAICUDA(cuda_item *cudaItems, cuda_item *hostItems, float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber, 
+	                     int agentNum, int obstacleNum, int &numDisabledAgents, int streamNum, cudaStream_t *stList)
 {
 	dim3 block(BLOCKSIZE*BLOCKSIZE);
-	dim3 grid((agentNum)/(BLOCKSIZE*BLOCKSIZE) + 1);
+	//dim3 grid((agentNum)/(BLOCKSIZE*BLOCKSIZE) + 1);
+	dim3 grid((STREAM_SIZE)/(BLOCKSIZE*BLOCKSIZE));
 
 	int *disAgents, *hostDisAgents;
 	CudaSafeCall(cudaMalloc(&disAgents, sizeof(int)*agentNum));
 	CudaSafeCall(cudaMemset(disAgents,0, sizeof(int)*agentNum));
 
 	hostDisAgents = new int[agentNum];
+	//int streamAgentNum = 1024;
 
-	updateAI_kernel<<<grid, block>>>(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber,
-		                             agentNum, obstacleNum, disAgents);
+	for (int i = 0; i < streamNum; ++i)
+	{
+		int streamSize;
+		updateAI_kernel<<<grid, block, 0, stList[i]>>>(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber,
+		                             agentNum, obstacleNum, disAgents, i);
 
-	cudaError_t res = cudaDeviceSynchronize();
+		if (STREAM_SIZE*(i+1) <= agentNum)
+			streamSize = STREAM_SIZE;
+		else
+			streamSize = agentNum % STREAM_SIZE;
+
+		CudaSafeCall(cudaMemcpyAsync(hostItems + STREAM_SIZE*i,
+									cudaItems + STREAM_SIZE*i,
+									sizeof(cuda_item)*streamSize,
+									cudaMemcpyDeviceToHost,
+									stList[i]));
+	}
+
+	cudaError_t res;// = cudaDeviceSynchronize();
 
 	res = (cudaMemcpy(hostDisAgents, disAgents, sizeof(int)*agentNum, cudaMemcpyDeviceToHost));
 
@@ -158,5 +173,6 @@ void launch_updateAICUDA(cuda_item *cudaItems, float currentSimulationTime, floa
 		numDisabledAgents += hostDisAgents[i];
 	}
 
+	CudaSafeCall(cudaFree(disAgents));
 
 }

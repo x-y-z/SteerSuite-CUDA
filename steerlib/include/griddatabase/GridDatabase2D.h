@@ -194,6 +194,8 @@ namespace SteerLib {
 		cuda_item *hostItems;
 		int cudaAgentNum;
 		int cudaObstacleNum;
+		int cudaStreamNum;
+		cudaStream_t *streamList;
 	public:
 		void allocateCUDAItems(int agentNum, int obstacleNum);
 		void addAgentCUDA(AgentInitialConditions &agentInfo, int idx);

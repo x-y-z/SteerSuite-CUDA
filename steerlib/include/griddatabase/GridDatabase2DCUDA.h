@@ -10,6 +10,8 @@
 #include "cutil_math.h"
 
 
+#define STREAM_SIZE 512
+
 //=============cuda===========
 // Enable this for error checking
 #define CUDA_CHECK_ERROR
@@ -141,7 +143,7 @@ typedef struct cuda_item{
 
 
 
-void launch_updateAICUDA(cuda_item *cudaItems, float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber, 
-	        int agentNum, int obstacleNum, int &numDisabledAgents);
+void launch_updateAICUDA(cuda_item *cudaItems, cuda_item *hostItems, float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber, 
+	        int agentNum, int obstacleNum, int &numDisabledAgents, int streamNum, cudaStream_t *stList);
 
 #endif

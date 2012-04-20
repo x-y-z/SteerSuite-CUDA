@@ -54,6 +54,8 @@ GridDatabase2D::GridDatabase2D(float xmin, float xmax, float zmin, float zmax, u
 	hostItems = NULL;
 	cudaAgentNum = 0;
 	cudaObstacleNum = 0;
+	cudaStreamNum = 1;
+	streamList = NULL;
 }
 
 
@@ -81,6 +83,8 @@ GridDatabase2D::GridDatabase2D(const Point & origin2D, float xExtent, float zExt
 	hostItems = NULL;
 	cudaAgentNum = 0;
 	cudaObstacleNum = 0;
+	cudaStreamNum = 1;
+	streamList = NULL;
 }
 
 
@@ -98,6 +102,14 @@ GridDatabase2D::~GridDatabase2D()
 
 	if (hostItems != NULL)
 		delete [] hostItems;
+
+	if (streamList != NULL)
+	{
+		for (int i = 0; i < cudaStreamNum; ++i)
+		{
+			cudaStreamDestroy(streamList[i]);
+		}
+	}
 }
 
 
@@ -714,6 +726,15 @@ void GridDatabase2D::allocateCUDAItems(int agentNum, int obstacleNum)
 	CudaSafeCall(cudaMalloc(&cudaItems, sizeof(cuda_item)*(cudaAgentNum+cudaObstacleNum)));
 
 	hostItems = new cuda_item[cudaAgentNum+cudaObstacleNum];
+
+	//make stream
+	cudaStreamNum = agentNum/STREAM_SIZE + 1;
+	streamList = new cudaStream_t[cudaStreamNum];
+
+	for (int i = 0; i < cudaStreamNum; ++i)
+	{
+		cudaStreamCreate(&streamList[i]);
+	}
 }
 
 void GridDatabase2D::addAgentCUDA(AgentInitialConditions &agentInfo, int idx)
@@ -788,14 +809,14 @@ void GridDatabase2D::fromHostToDevice()
 }
 void GridDatabase2D::fromDeviceToHost()
 {
-	CudaSafeCall(cudaMemcpy(hostItems, cudaItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyDeviceToHost));
+	//CudaSafeCall(cudaMemcpy(hostItems, cudaItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyDeviceToHost));
 }
 
 int GridDatabase2D::updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber)
 {
 	int allDisabledAgents = 0;
-	launch_updateAICUDA(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber, cudaAgentNum, cudaObstacleNum,
-		                allDisabledAgents);
+	launch_updateAICUDA(cudaItems, hostItems, currentSimulationTime, simulatonDt, currentFrameNumber, cudaAgentNum, cudaObstacleNum,
+		                allDisabledAgents, cudaStreamNum, streamList);
 	return allDisabledAgents;
 }
 
@@ -810,6 +831,9 @@ int GridDatabase2D::updateHostAgents(std::vector<SteerLib::AgentInterface*> &age
 	{
 		if (hostItems[i].type < 0)
 			continue;
+
+		if (i == 532)
+			int a = 5;
 
 		newInfo._enabled = hostItems[i]._agent._enabled;
 		newInfo.newBounds.xmax = hostItems[i]._agent._newBounds.xmax;

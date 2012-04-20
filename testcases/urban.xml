@@ -304,7 +304,7 @@
   </obstacle>
 
   <agentRegion>
-    <numAgents>500</numAgents>
+    <numAgents>5000</numAgents>
     <regionBounds>
       <xmin>-100</xmin>
       <xmax>100</xmax>
