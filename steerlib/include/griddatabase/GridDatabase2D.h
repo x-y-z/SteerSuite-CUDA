@@ -197,15 +197,19 @@ namespace SteerLib {
 		int cudaStreamNum;
 		cudaStream_t *streamList;
 	public:
+		/// allocate cuda items, like agents and obstacles
 		void allocateCUDAItems(int agentNum, int obstacleNum);
+		/// add an agent into GPU
 		void addAgentCUDA(AgentInitialConditions &agentInfo, int idx);
+		/// add an obstacle into GPU
 		void addObstacleCUDA(const ObstacleInitialConditions &obstacleInfo, int idx);
-
+		/// copy initialized information to GPU
 		void fromHostToDevice();
+		/// copy updated information back to CPU for rendering
 		void fromDeviceToHost();
-
+		/// update agents in GPU
 		int updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber);
-
+		/// copy data back to CPU agents
 		int updateHostAgents(std::vector<SteerLib::AgentInterface*> &agentList);
 	};
 
