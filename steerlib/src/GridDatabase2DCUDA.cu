@@ -6,56 +6,11 @@
 #define MAX_SPEED 1.3f
 #define AGENT_MASS 1.0f
 
-/*
-Util::Vector vectorToGoal = _goalQueue.front().targetLocation - _position;
-
-	// it is up to the agent to decide what it means to have "accomplished" or "completed" a goal.
-	// for the simple AI, if the agent's distance to its goal is less than its radius, then the agent has reached the goal.
-	if (vectorToGoal.lengthSquared() < _radius * _radius) {
-		_goalQueue.pop();
-		if (_goalQueue.size() != 0) {
-			// in this case, there are still more goals, so start steering to the next goal.
-			vectorToGoal = _goalQueue.front().targetLocation - _position;
-		}
-		else {
-			// in this case, there are no more goals, so disable the agent and remove it from the spatial database.
-			Util::AxisAlignedBox bounds(_position.x-_radius, _position.x+_radius, 0.0f, 0.0f, _position.z-_radius, _position.z+_radius);
-			gSpatialDatabase->removeObject( this, bounds);
-			_enabled = false;
-			return;
-		}
-	}
-
-	// use the vectorToGoal as a force for the agent to steer towards its goal.
-	// the euler integration step will clamp this vector to a reasonable value, if needed.
-	// also, the Euler step updates the agent's position in the spatial database.
-	_doEulerStep(vectorToGoal, dt);
-
-
-	// compute acceleration, _velocity, and newPosition by a simple Euler step
-	const Util::Vector clippedForce = Util::clamp(steeringDecisionForce, MAX_FORCE_MAGNITUDE);
-	Util::Vector acceleration = (clippedForce / AGENT_MASS);
-	_velocity = _velocity + (dt*acceleration);
-	_velocity = clamp(_velocity, MAX_SPEED);  // clamp _velocity to the max speed
-	const Util::Point newPosition = _position + (dt*_velocity);
-
-	// For this simple agent, we just make the orientation point along the agent's current velocity.
-	if (_velocity.lengthSquared() != 0.0f) {
-		_forward = normalize(_velocity);
-	}
-
-	// update the database with the new agent's setup
-	Util::AxisAlignedBox oldBounds(_position.x - _radius, _position.x + _radius, 0.0f, 0.0f, _position.z - _radius, _position.z + _radius);
-	Util::AxisAlignedBox newBounds(newPosition.x - _radius, newPosition.x + _radius, 0.0f, 0.0f, newPosition.z - _radius, newPosition.z + _radius);
-	gSpatialDatabase->updateObject( this, oldBounds, newBounds);
-
-	_position = newPosition;
-	*/
-
+//cuda update agent kernel
 __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTime, float dt, unsigned int currentFrameNumbers,
 								int agentNum, int obstacleNum, int *disabledAgents, int streamIdx)
 {
-	int x = blockIdx.x * blockDim.x + threadIdx.x + streamIdx*STREAM_SIZE;
+	int x = blockIdx.x * blockDim.x + threadIdx.x;// + streamIdx*STREAM_SIZE;
 	
 	if (x >= agentNum)
 		return;
@@ -73,11 +28,7 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 	float3 position = cudaItems[x]._agent._position;
 	float3 vectorToGoal = cudaItems[x]._agent._goalQueue[curGoal] - cudaItems[x]._agent._position;
 
-	//printf("goal: (%f,%f,%f)\n", cudaItems[x]._agent._goalQueue[curGoal].x, cudaItems[x]._agent._goalQueue[curGoal].y, cudaItems[x]._agent._goalQueue[curGoal].z);
-	//printf("position: (%f,%f,%f)\n", cudaItems[x]._agent._position.x, cudaItems[x]._agent._position.y, cudaItems[x]._agent._position.z);
-
-	//printf("vector to Goal: (%f,%f,%f), radius: %f\n", vectorToGoal.x, vectorToGoal.y, vectorToGoal.z, radius);
-
+	
 	cudaItems[x]._agent._usedGoal = 0;
 
 	// it is up to the agent to decide what it means to have "accomplished" or "completed" a goal.
@@ -92,11 +43,9 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 		else {
 			// in this case, there are no more goals, so disable the agent and remove it from the spatial database.
 			AABox bounds = {position.x-radius, position.x+radius, 0.0f, 0.0f, position.z-radius, position.z+radius};
-			//gSpatialDatabase->removeObject( this, bounds);
 			cudaItems[x]._agent._newBounds = bounds;
 			cudaItems[x]._agent._enabled = false;
 			disabledAgents[x] = 1;
-			//printf("disabled one\n");
 			return;
 		}
 	}
@@ -123,7 +72,6 @@ __global__ void updateAI_kernel(cuda_item *cudaItems, float currentSimulationTim
 					   0.0f, 0.0f, 
 					   newPosition.z - cudaItems[x]._agent._radius, 
 					   newPosition.z + cudaItems[x]._agent._radius};
-	//gSpatialDatabase->updateObject( this, oldBounds, newBounds);
 
 	cudaItems[x]._agent._oldBounds = oldBounds;
 	cudaItems[x]._agent._newBounds = newBounds;
@@ -136,8 +84,9 @@ void launch_updateAICUDA(cuda_item *cudaItems, cuda_item *hostItems, float curre
 	                     int agentNum, int obstacleNum, int &numDisabledAgents, int streamNum, cudaStream_t *stList)
 {
 	dim3 block(BLOCKSIZE*BLOCKSIZE);
-	//dim3 grid((agentNum)/(BLOCKSIZE*BLOCKSIZE) + 1);
-	dim3 grid((STREAM_SIZE)/(BLOCKSIZE*BLOCKSIZE));
+	dim3 grid((agentNum)/(BLOCKSIZE*BLOCKSIZE) + 1);
+	//tried stream, but not work well
+	//dim3 grid((STREAM_SIZE)/(BLOCKSIZE*BLOCKSIZE));
 
 	int *disAgents, *hostDisAgents;
 	CudaSafeCall(cudaMalloc(&disAgents, sizeof(int)*agentNum));
@@ -146,23 +95,24 @@ void launch_updateAICUDA(cuda_item *cudaItems, cuda_item *hostItems, float curre
 	hostDisAgents = new int[agentNum];
 	//int streamAgentNum = 1024;
 
-	for (int i = 0; i < streamNum; ++i)
-	{
-		int streamSize;
-		updateAI_kernel<<<grid, block, 0, stList[i]>>>(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber,
-		                             agentNum, obstacleNum, disAgents, i);
+	//for (int i = 0; i < streamNum; ++i)
+	//{
+		//int streamSize;
+	updateAI_kernel<<<grid, block>>>(cudaItems, currentSimulationTime, simulatonDt, currentFrameNumber,
+		                            agentNum, obstacleNum, disAgents, 0);
 
-		if (STREAM_SIZE*(i+1) <= agentNum)
-			streamSize = STREAM_SIZE;
-		else
-			streamSize = agentNum % STREAM_SIZE;
+	//for stream, not used
+	/*if (STREAM_SIZE*(i+1) <= agentNum)
+		streamSize = STREAM_SIZE;
+	else
+		streamSize = agentNum % STREAM_SIZE;
 
-		CudaSafeCall(cudaMemcpyAsync(hostItems + STREAM_SIZE*i,
-									cudaItems + STREAM_SIZE*i,
-									sizeof(cuda_item)*streamSize,
-									cudaMemcpyDeviceToHost,
-									stList[i]));
-	}
+	CudaSafeCall(cudaMemcpyAsync(hostItems + STREAM_SIZE*i,
+								cudaItems + STREAM_SIZE*i,
+								sizeof(cuda_item)*streamSize,
+								cudaMemcpyDeviceToHost,
+								stList[i]));*/
+	//}
 
 	cudaError_t res;// = cudaDeviceSynchronize();
 

@@ -728,13 +728,13 @@ void GridDatabase2D::allocateCUDAItems(int agentNum, int obstacleNum)
 	hostItems = new cuda_item[cudaAgentNum+cudaObstacleNum];
 
 	//make stream
-	cudaStreamNum = agentNum/STREAM_SIZE + 1;
+	/*cudaStreamNum = agentNum/STREAM_SIZE + 1;
 	streamList = new cudaStream_t[cudaStreamNum];
 
 	for (int i = 0; i < cudaStreamNum; ++i)
 	{
 		cudaStreamCreate(&streamList[i]);
-	}
+	}*/
 }
 
 void GridDatabase2D::addAgentCUDA(AgentInitialConditions &agentInfo, int idx)
@@ -809,7 +809,7 @@ void GridDatabase2D::fromHostToDevice()
 }
 void GridDatabase2D::fromDeviceToHost()
 {
-	//CudaSafeCall(cudaMemcpy(hostItems, cudaItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyDeviceToHost));
+	CudaSafeCall(cudaMemcpy(hostItems, cudaItems, sizeof(cuda_item)*(cudaAgentNum + cudaObstacleNum), cudaMemcpyDeviceToHost));
 }
 
 int GridDatabase2D::updateAICUDA(float currentSimulationTime, float simulatonDt, unsigned int currentFrameNumber)
